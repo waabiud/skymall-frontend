@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const BASE_URL = process.env.REACT_APP_API_URL || 'http://127.0.0.1:8000/api';
+const BASE_URL = process.env.REACT_APP_API_URL || 'https://waabiud.pythonanywhere.com/api';
 
 const api = axios.create({
   baseURL: BASE_URL,
@@ -22,13 +22,16 @@ api.interceptors.response.use(
       const refresh = localStorage.getItem('refresh_token');
       if (refresh) {
         try {
-          const res = await axios.post(`${BASE_URL}/auth/token/refresh/`, { refresh });
+          const res = await axios.post(
+            `${BASE_URL}/auth/token/refresh/`,
+            { refresh }
+          );
           localStorage.setItem('access_token', res.data.access);
           original.headers.Authorization = `Bearer ${res.data.access}`;
           return api(original);
         } catch {
           localStorage.clear();
-          window.location.href = '/login';
+          window.location.href = '/#/login';
         }
       }
     }

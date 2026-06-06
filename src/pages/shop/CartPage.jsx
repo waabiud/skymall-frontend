@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   FiTrash2, FiMinus, FiPlus, FiShoppingBag,
-  FiArrowRight, FiTag
+  FiArrowRight
 } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import { cartAPI } from '../../api/endpoints';

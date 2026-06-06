@@ -23,8 +23,8 @@ const CheckoutPage = () => {
   const [order,     setOrder]     = useState(null);
   const [stkSent,   setStkSent]   = useState(false);
   const [checking,  setChecking]  = useState(false);
-  const [paid,      setPaid]      = useState(false);
-  const [checkoutId,setCheckoutId]= useState(null);
+  
+  
   const pollRef                   = useRef(null);
 
   const [form, setForm] = useState({
@@ -75,7 +75,7 @@ const CheckoutPage = () => {
         order_number: order.order_number,
         phone_number: mpesaPhone,
       });
-      setCheckoutId(res.data.checkout_request_id);
+      
       setStkSent(true);
       toast.success('M-Pesa prompt sent! Enter your PIN on your phone.', { duration: 8000 });
       startPolling(res.data.checkout_request_id, order.order_number);
@@ -95,13 +95,14 @@ const CheckoutPage = () => {
       try {
         const res = await paymentsAPI.checkStatus(cid);
         if (res.data.status === 'success') {
-          clearInterval(pollRef.current);
-          setChecking(false);
-          setPaid(true);
-          clearCart();
-          setStep(2);
-          toast.success('Payment confirmed! Your order is placed.', { duration: 6000 });
-        } else if (res.data.status === 'failed') {
+  clearInterval(pollRef.current);
+  setChecking(false);
+  clearCart();
+  setStep(2);
+  toast.success('Payment confirmed! Your order is placed.', {
+    duration: 6000
+  });
+  } else if (res.data.status === 'failed') {
           clearInterval(pollRef.current);
           setChecking(false);
           toast.error('Payment failed. Please try again.');
@@ -386,7 +387,7 @@ const CheckoutPage = () => {
                       className="w-full py-2.5 border border-green-500 text-green-600
                                  rounded-xl text-sm font-medium hover:bg-green-50
                                  dark:hover:bg-green-900/20 transition">
-                      Resend M-Pesa Prompt
+                      Retry
                     </button>
                   )}
                 </div>

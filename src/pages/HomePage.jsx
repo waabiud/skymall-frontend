@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import {
   FiArrowRight, FiShoppingBag, FiTruck,
   FiShield, FiRefreshCw, FiShoppingCart, FiHeart,
-  FiZap, FiStar
+  FiZap
 } from 'react-icons/fi';
 import { productsAPI, cartAPI } from '../api/endpoints';
 import useAuthStore from '../store/authStore';

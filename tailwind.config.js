@@ -1,4 +1,3 @@
-/** @type {import('tailwindcss').Config} */
 module.exports = {
   darkMode: 'class',
   content: [
@@ -7,11 +6,14 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        primary:   '#0070F3',
-        secondary: '#00B4A6',
-        accent:    '#F5A623',
-        danger:    '#F25C54',
+        primary:   '#E91E8C',
+        'primary-dark': '#C4177A',
+        'primary-light': '#F06AB5',
+        secondary: '#FF6B35',
+        accent:    '#FFC107',
+        danger:    '#F44336',
         dark:      '#0A0A0A',
+        'sky-gray': '#F5F5F5',
       },
       fontFamily: {
         sans:    ['DM Sans', 'sans-serif'],

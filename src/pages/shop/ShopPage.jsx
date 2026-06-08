@@ -157,8 +157,8 @@ const ShopPage = () => {
       const params = {};
       Object.entries(filters).forEach(([k, v]) => { if (v) params[k] = v; });
       const res = await productsAPI.getAll(params);
-      setProducts(res.data.results || res.data);
-      setCount(res.data.count || 0);
+      setProducts(Array.isArray(res.data) ? res.data : (res.data.results || []));
+      setCount(res.data.count || (Array.isArray(res.data) ? res.data.length : 0));
     } catch {
       toast.error('Failed to load products');
     } finally {

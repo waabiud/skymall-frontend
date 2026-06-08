@@ -6,6 +6,7 @@ import toast from 'react-hot-toast';
 import { authAPI } from '../../api/endpoints';
 import useAuthStore from '../../store/authStore';
 import Logo from '../../components/common/Logo';
+import GoogleLoginButton from '../../components/common/GoogleLoginButton';
 
 const LoginPage = () => {
   const navigate    = useNavigate();
@@ -15,7 +16,7 @@ const LoginPage = () => {
 
   const [form, setForm]         = useState({ email: '', password: '' });
   const [showPass, setShowPass] = useState(false);
-  const [loading, setLoading]   = useState(false);
+  const [loading,  setLoading]  = useState(false);
 
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
@@ -35,8 +36,8 @@ const LoginPage = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50
-                    dark:bg-dark px-4 py-12">
+    <div className="min-h-screen flex items-center justify-center bg-gray-100
+                    dark:bg-gray-950 px-4 py-12">
       <motion.div
         initial={{ opacity: 0, y: 24 }}
         animate={{ opacity: 1, y: 0 }}
@@ -46,7 +47,6 @@ const LoginPage = () => {
         <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl border
                         border-gray-100 dark:border-gray-800 p-8">
 
-          {/* Header */}
           <div className="flex flex-col items-center mb-8">
             <Logo size="md" />
             <h1 className="font-heading text-2xl font-bold dark:text-white mt-4">
@@ -57,17 +57,27 @@ const LoginPage = () => {
             </p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-5">
+          {/* Google Login */}
+          <div className="mb-6">
+            <GoogleLoginButton label="Continue with Google" />
+          </div>
 
-            {/* Email */}
+          {/* Divider */}
+          <div className="flex items-center gap-3 mb-6">
+            <div className="flex-1 h-px bg-gray-200 dark:bg-gray-700" />
+            <span className="text-xs text-gray-400 font-medium">OR</span>
+            <div className="flex-1 h-px bg-gray-200 dark:bg-gray-700" />
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700
                                 dark:text-gray-300 mb-1">
                 Email address
               </label>
               <div className="relative">
-                <FiMail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-                  size={18} />
+                <FiMail className="absolute left-3 top-1/2 -translate-y-1/2
+                                   text-gray-400" size={18} />
                 <input type="email" name="email" value={form.email}
                   onChange={handleChange} required placeholder="you@example.com"
                   className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200
@@ -77,10 +87,10 @@ const LoginPage = () => {
               </div>
             </div>
 
-            {/* Password */}
             <div>
               <div className="flex justify-between items-center mb-1">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                <label className="block text-sm font-medium text-gray-700
+                                  dark:text-gray-300">
                   Password
                 </label>
                 <Link to="/forgot-password"
@@ -89,8 +99,8 @@ const LoginPage = () => {
                 </Link>
               </div>
               <div className="relative">
-                <FiLock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-                  size={18} />
+                <FiLock className="absolute left-3 top-1/2 -translate-y-1/2
+                                   text-gray-400" size={18} />
                 <input type={showPass ? 'text' : 'password'}
                   name="password" value={form.password}
                   onChange={handleChange} required placeholder="••••••••"
@@ -108,7 +118,7 @@ const LoginPage = () => {
 
             <button type="submit" disabled={loading}
               className="w-full py-3 bg-primary text-white font-semibold rounded-xl
-                         hover:bg-blue-600 transition disabled:opacity-60
+                         hover:bg-primary-dark transition disabled:opacity-60
                          disabled:cursor-not-allowed">
               {loading ? 'Signing in...' : 'Sign In'}
             </button>

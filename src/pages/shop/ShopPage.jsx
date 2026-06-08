@@ -146,7 +146,7 @@ const ShopPage = () => {
   });
 
   useEffect(() => {
-    productsAPI.getCategories().then((res) => setCategories(res.data));
+    productsAPI.getCategories().then((res) => setCategories(Array.isArray(res.data) ? res.data : (res.data.results || [])));
   }, []);
 
   useEffect(() => { fetchProducts(); }, [filters]);

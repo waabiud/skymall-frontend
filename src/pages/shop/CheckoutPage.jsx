@@ -47,6 +47,7 @@ const CheckoutPage = () => {
       navigate('/cart');
     });
     return () => { if (pollRef.current) clearInterval(pollRef.current); };
+  // eslint-disable-next-line
   }, []);
 
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });

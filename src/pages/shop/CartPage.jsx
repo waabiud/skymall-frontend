@@ -17,6 +17,7 @@ const CartPage = () => {
 
   useEffect(() => {
     fetchCart();
+  // eslint-disable-next-line
   }, []);
 
   const fetchCart = async () => {

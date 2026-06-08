@@ -133,17 +133,24 @@ const ShopPage = () => {
   const [count,       setCount]       = useState(0);
   const [showFilters, setShowFilters] = useState(false);
 
-  const [filters, setFilters] = useState({
-    search:    searchParams.get('search')    || '',
-    category:  searchParams.get('category') || '',
-    condition: searchParams.get('condition')|| '',
-    min_price: searchParams.get('min_price')|| '',
-    max_price: searchParams.get('max_price')|| '',
-    sort:      searchParams.get('sort')     || '-created_at',
-    in_stock:  searchParams.get('in_stock') || '',
-    featured:  searchParams.get('featured') || '',
-    flash_sale:searchParams.get('flash_sale')|| '',
+  const getFiltersFromParams = () => ({
+    search:     searchParams.get('search')     || '',
+    category:   searchParams.get('category')  || '',
+    condition:  searchParams.get('condition') || '',
+    min_price:  searchParams.get('min_price') || '',
+    max_price:  searchParams.get('max_price') || '',
+    sort:       searchParams.get('sort')      || '-created_at',
+    in_stock:   searchParams.get('in_stock')  || '',
+    featured:   searchParams.get('featured')  || '',
+    flash_sale: searchParams.get('flash_sale')|| '',
   });
+
+  const [filters, setFilters] = useState(getFiltersFromParams);
+
+  useEffect(() => {
+    setFilters(getFiltersFromParams());
+  // eslint-disable-next-line
+  }, [searchParams]);
 
   useEffect(() => {
     productsAPI.getCategories().then((res) => setCategories(Array.isArray(res.data) ? res.data : (res.data.results || [])));

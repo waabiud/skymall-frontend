@@ -204,7 +204,7 @@ const HomePage = () => {
         setFeatured(featRes.data.results   || featRes.data);
         setTrending(trendRes.data.results  || trendRes.data);
         setFlashSale(flashRes.data.results || flashRes.data);
-        setCategories(catRes.data.results  || catRes.data);
+        setCategories(Array.isArray(catRes.data) ? catRes.data : (catRes.data.results || []));
       } catch {
         toast.error('Failed to load products');
       } finally {

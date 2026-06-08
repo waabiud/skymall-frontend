@@ -26,7 +26,7 @@ const Navbar = () => {
 
   useEffect(() => {
     productsAPI.getCategories().then((res) => {
-      setCategories(res.data || []);
+      setCategories(Array.isArray(res.data) ? res.data : (res.data.results || []));
     }).catch(() => {});
   }, []);
 

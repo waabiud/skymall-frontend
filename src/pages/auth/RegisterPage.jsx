@@ -5,6 +5,7 @@ import { FiMail, FiLock, FiUser, FiPhone, FiEye, FiEyeOff } from 'react-icons/fi
 import toast from 'react-hot-toast';
 import { authAPI } from '../../api/endpoints';
 import Logo from '../../components/common/Logo';
+import GoogleLoginButton from '../../components/common/GoogleLoginButton';
 
 const RegisterPage = () => {
   const navigate = useNavigate();

@@ -1,13 +1,13 @@
 {
   "files": {
-    "main.css": "/skymall-frontend/static/css/main.71f9e3f1.css",
-    "main.js": "/skymall-frontend/static/js/main.acabb50a.js",
+    "main.css": "/skymall-frontend/static/css/main.45467be5.css",
+    "main.js": "/skymall-frontend/static/js/main.328a5fc6.js",
     "index.html": "/skymall-frontend/index.html",
-    "main.71f9e3f1.css.map": "/skymall-frontend/static/css/main.71f9e3f1.css.map",
-    "main.acabb50a.js.map": "/skymall-frontend/static/js/main.acabb50a.js.map"
+    "main.45467be5.css.map": "/skymall-frontend/static/css/main.45467be5.css.map",
+    "main.328a5fc6.js.map": "/skymall-frontend/static/js/main.328a5fc6.js.map"
   },
   "entrypoints": [
-    "static/css/main.71f9e3f1.css",
-    "static/js/main.acabb50a.js"
+    "static/css/main.45467be5.css",
+    "static/js/main.328a5fc6.js"
   ]
 }

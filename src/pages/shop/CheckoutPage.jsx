@@ -3,12 +3,13 @@ import { useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   FiMapPin, FiPhone, FiCheck, FiArrowLeft,
-  FiLoader, FiSmartphone
+  FiLoader, FiSmartphone, FiEdit2
 } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import { cartAPI, ordersAPI, paymentsAPI } from '../../api/endpoints';
 import useCartStore from '../../store/cartStore';
 import useAuthStore from '../../store/authStore';
+import LocationPicker from '../../components/common/LocationPicker';
 
 const steps = ['Delivery', 'Payment', 'Confirmed'];
 
@@ -23,7 +24,6 @@ const CheckoutPage = () => {
   const [order,     setOrder]     = useState(null);
   const [stkSent,   setStkSent]   = useState(false);
   const [checking,  setChecking]  = useState(false);
-  
   
   const pollRef                   = useRef(null);
 
@@ -52,7 +52,20 @@ const CheckoutPage = () => {
 
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
-  // Step 1 — place order in pending/unpaid state
+  const handleLocationSelect = (address) => {
+    // extract city from address
+    const parts = address.split(',');
+    const city  = parts.length > 1
+      ? parts[parts.length - 2].trim()
+      : 'Nairobi';
+
+    setForm({
+      ...form,
+      delivery_address: address,
+      delivery_city:    city,
+    });
+  };
+
   const handlePlaceOrder = async () => {
     setPlacing(true);
     try {
@@ -66,7 +79,6 @@ const CheckoutPage = () => {
     }
   };
 
-  // Step 2 — send STK push
   const handleMpesaPay = async () => {
     if (!order) return;
     if (!mpesaPhone) { toast.error('Enter your M-Pesa phone number'); return; }
@@ -76,19 +88,18 @@ const CheckoutPage = () => {
         order_number: order.order_number,
         phone_number: mpesaPhone,
       });
-      
+      const cid = res.data.checkout_request_id;
       setStkSent(true);
-      toast.success('M-Pesa prompt sent! Enter your PIN on your phone.', { duration: 8000 });
-      startPolling(res.data.checkout_request_id, order.order_number);
+      toast.success('M-Pesa prompt sent! Enter your PIN.', { duration: 8000 });
+      startPolling(cid);
     } catch (err) {
-      toast.error(err.response?.data?.error || 'Payment initiation failed. Try again.');
+      toast.error(err.response?.data?.error || 'Payment initiation failed.');
     } finally {
       setPlacing(false);
     }
   };
 
-  // Poll payment status every 5 seconds for up to 2 minutes
-  const startPolling = (cid, orderNumber) => {
+  const startPolling = (cid) => {
     setChecking(true);
     let attempts = 0;
     pollRef.current = setInterval(async () => {
@@ -96,24 +107,22 @@ const CheckoutPage = () => {
       try {
         const res = await paymentsAPI.checkStatus(cid);
         if (res.data.status === 'success') {
-  clearInterval(pollRef.current);
-  setChecking(false);
-  clearCart();
-  setStep(2);
-  toast.success('Payment confirmed! Your order is placed.', {
-    duration: 6000
-  });
-  } else if (res.data.status === 'failed') {
+          clearInterval(pollRef.current);
+          setChecking(false);
+          clearCart();
+          setStep(2);
+          toast.success('Payment confirmed! Order placed.', { duration: 6000 });
+        } else if (res.data.status === 'failed') {
           clearInterval(pollRef.current);
           setChecking(false);
           toast.error('Payment failed. Please try again.');
           setStkSent(false);
         }
       } catch {}
-      if (attempts >= 24) { // 2 minutes
+      if (attempts >= 24) {
         clearInterval(pollRef.current);
         setChecking(false);
-        toast.error('Payment timeout. If you paid, your order will be confirmed shortly.');
+        toast.error('Payment timeout. If you paid, order will be confirmed shortly.');
       }
     }, 5000);
   };
@@ -181,34 +190,40 @@ const CheckoutPage = () => {
                              flex items-center gap-2">
                 <FiMapPin className="text-primary" /> Delivery Details
               </h2>
+
               <div className="space-y-4">
+
+                {/* Location Picker */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700
-                                    dark:text-gray-300 mb-1">
-                    Delivery Address <span className="text-danger">*</span>
+                                    dark:text-gray-300 mb-2">
+                    Delivery Location <span className="text-danger">*</span>
                   </label>
-                  <textarea name="delivery_address" value={form.delivery_address}
-                    onChange={handleChange} required rows={3}
-                    placeholder="Street, building, apartment number..."
-                    className="w-full px-4 py-3 rounded-xl border border-gray-200
-                               dark:border-gray-700 bg-gray-50 dark:bg-gray-800
-                               dark:text-white text-sm focus:outline-none
-                               focus:ring-2 focus:ring-primary resize-none" />
+                  <LocationPicker
+                    onLocationSelect={handleLocationSelect}
+                    currentAddress={form.delivery_address}
+                  />
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700
-                                    dark:text-gray-300 mb-1">
-                    City / Town <span className="text-danger">*</span>
-                  </label>
-                  <input type="text" name="delivery_city" value={form.delivery_city}
-                    onChange={handleChange} required placeholder="e.g. Nairobi"
-                    className="w-full px-4 py-3 rounded-xl border border-gray-200
-                               dark:border-gray-700 bg-gray-50 dark:bg-gray-800
-                               dark:text-white text-sm focus:outline-none
-                               focus:ring-2 focus:ring-primary" />
-                </div>
+                {/* Manual address override */}
+                {form.delivery_address && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700
+                                      dark:text-gray-300 mb-1 flex items-center gap-1">
+                      <FiEdit2 size={13} /> Add more details (optional)
+                    </label>
+                    <input type="text" name="delivery_address"
+                      value={form.delivery_address}
+                      onChange={handleChange}
+                      placeholder="Floor, apartment, landmark..."
+                      className="w-full px-4 py-3 rounded-xl border border-gray-200
+                                 dark:border-gray-700 bg-gray-50 dark:bg-gray-800
+                                 dark:text-white text-sm focus:outline-none
+                                 focus:ring-2 focus:ring-primary" />
+                  </div>
+                )}
 
+                {/* Phone */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700
                                     dark:text-gray-300 mb-1">
@@ -217,7 +232,8 @@ const CheckoutPage = () => {
                   <div className="relative">
                     <FiPhone className="absolute left-3 top-1/2 -translate-y-1/2
                                         text-gray-400" size={16} />
-                    <input type="tel" name="delivery_phone" value={form.delivery_phone}
+                    <input type="tel" name="delivery_phone"
+                      value={form.delivery_phone}
                       onChange={handleChange} required placeholder="0712345678"
                       className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200
                                  dark:border-gray-700 bg-gray-50 dark:bg-gray-800
@@ -226,6 +242,7 @@ const CheckoutPage = () => {
                   </div>
                 </div>
 
+                {/* Notes */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700
                                     dark:text-gray-300 mb-1">
@@ -242,15 +259,19 @@ const CheckoutPage = () => {
 
                 <button
                   onClick={() => {
-                    if (!form.delivery_address || !form.delivery_city || !form.delivery_phone) {
-                      toast.error('Please fill in all required fields');
+                    if (!form.delivery_address) {
+                      toast.error('Please set your delivery location');
+                      return;
+                    }
+                    if (!form.delivery_phone) {
+                      toast.error('Please enter your phone number');
                       return;
                     }
                     handlePlaceOrder();
                   }}
                   disabled={placing}
                   className="w-full py-3 bg-primary text-white font-semibold rounded-xl
-                             hover:bg-blue-600 transition disabled:opacity-60
+                             hover:bg-primary-dark transition disabled:opacity-60
                              disabled:cursor-not-allowed">
                   {placing ? 'Preparing order...' : 'Continue to Payment'}
                 </button>
@@ -270,8 +291,7 @@ const CheckoutPage = () => {
                 <FiSmartphone className="text-green-600" /> Pay with M-Pesa
               </h2>
               <p className="text-gray-500 dark:text-gray-400 text-sm mb-6">
-                Enter your M-Pesa number to receive a payment prompt on your phone.
-                Complete the payment to confirm your order.
+                Enter your M-Pesa number to receive a payment prompt.
               </p>
 
               {!stkSent ? (
@@ -292,15 +312,13 @@ const CheckoutPage = () => {
                                    dark:text-white text-sm focus:outline-none
                                    focus:ring-2 focus:ring-primary" />
                     </div>
-                    <p className="text-xs text-gray-400 mt-1">
-                      Format: 07XXXXXXXX or 01XXXXXXXX
-                    </p>
                   </div>
 
-                  {/* Amount to pay */}
-                  <div className="bg-green-50 dark:bg-green-900/20 border border-green-200
-                                  dark:border-green-800 rounded-xl p-4">
-                    <p className="text-sm text-gray-600 dark:text-gray-400">Amount to pay</p>
+                  <div className="bg-green-50 dark:bg-green-900/20 border
+                                  border-green-200 dark:border-green-800 rounded-xl p-4">
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      Amount to pay
+                    </p>
                     <p className="font-heading text-2xl font-bold text-green-700
                                   dark:text-green-400">
                       KES {Number(order.total).toLocaleString()}
@@ -308,6 +326,20 @@ const CheckoutPage = () => {
                     <p className="text-xs text-gray-500 mt-1">
                       Order: {order.order_number}
                     </p>
+                  </div>
+
+                  {/* Delivery summary */}
+                  <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-3
+                                  flex items-start gap-2">
+                    <FiMapPin size={16} className="text-primary mt-0.5 flex-shrink-0" />
+                    <div>
+                      <p className="text-xs font-medium dark:text-white">
+                        Delivering to
+                      </p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        {form.delivery_address}
+                      </p>
+                    </div>
                   </div>
 
                   <button onClick={handleMpesaPay} disabled={placing}
@@ -329,66 +361,58 @@ const CheckoutPage = () => {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {/* Waiting for payment */}
                   <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200
                                   dark:border-blue-800 rounded-xl p-5 text-center">
                     {checking ? (
                       <>
-                        <div className="w-14 h-14 bg-blue-100 dark:bg-blue-900/40 rounded-full
-                                        flex items-center justify-center mx-auto mb-3">
+                        <div className="w-14 h-14 bg-blue-100 dark:bg-blue-900/40
+                                        rounded-full flex items-center justify-center
+                                        mx-auto mb-3">
                           <FiLoader size={28} className="text-primary animate-spin" />
                         </div>
                         <p className="font-semibold dark:text-white mb-1">
                           Waiting for payment...
                         </p>
                         <p className="text-sm text-gray-500 dark:text-gray-400">
-                          Check your phone <span className="font-bold">{mpesaPhone}</span> and
-                          enter your M-Pesa PIN to complete payment
+                          Check phone <span className="font-bold">{mpesaPhone}</span>{' '}
+                          and enter M-Pesa PIN
                         </p>
                       </>
                     ) : (
                       <>
-                        <div className="w-14 h-14 bg-green-100 rounded-full flex items-center
-                                        justify-center mx-auto mb-3">
-                          <FiCheck size={28} className="text-green-600" />
-                        </div>
+                        <FiCheck size={32} className="text-green-600 mx-auto mb-3" />
                         <p className="font-semibold dark:text-white">Prompt sent!</p>
-                        <p className="text-sm text-gray-500 dark:text-gray-400">
-                          Enter your M-Pesa PIN to complete payment
-                        </p>
                       </>
                     )}
                   </div>
 
-                  {/* Steps guide */}
                   <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-4">
-                    <p className="text-xs font-semibold text-gray-600 dark:text-gray-400
-                                  uppercase tracking-wide mb-3">
-                      How to complete payment
+                    <p className="text-xs font-semibold text-gray-500 uppercase
+                                  tracking-wide mb-3">
+                      How to complete
                     </p>
                     {[
                       'Check your phone for M-Pesa prompt',
                       'Enter your M-Pesa PIN',
                       'Wait for confirmation SMS',
-                      'Your order will be confirmed automatically',
-                    ].map((step, i) => (
+                      'Order confirmed automatically',
+                    ].map((s, i) => (
                       <div key={i} className="flex items-start gap-3 mb-2">
                         <div className="w-5 h-5 bg-primary rounded-full flex items-center
                                         justify-center flex-shrink-0 mt-0.5">
                           <span className="text-white text-xs font-bold">{i + 1}</span>
                         </div>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">{step}</p>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">{s}</p>
                       </div>
                     ))}
                   </div>
 
-                  {/* Resend option */}
                   {!checking && (
                     <button onClick={handleMpesaPay} disabled={placing}
                       className="w-full py-2.5 border border-green-500 text-green-600
                                  rounded-xl text-sm font-medium hover:bg-green-50
                                  dark:hover:bg-green-900/20 transition">
-                      Retry
+                      Resend M-Pesa Prompt
                     </button>
                   )}
                 </div>
@@ -411,24 +435,37 @@ const CheckoutPage = () => {
                 Order Confirmed!
               </h2>
               <p className="text-gray-500 dark:text-gray-400 text-sm mb-1">
-                Payment received. Your order number is
+                Payment received. Order number:
               </p>
-              <p className="font-mono font-bold text-primary text-xl mb-6">
+              <p className="font-mono font-bold text-primary text-xl mb-4">
                 {order.order_number}
               </p>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mb-8">
-                You will receive an SMS confirmation shortly.
-                Your items will be delivered to {form.delivery_address}, {form.delivery_city}.
-              </p>
+
+              <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-4 mb-6 text-left">
+                <div className="flex items-start gap-2">
+                  <FiMapPin size={16} className="text-primary mt-0.5 flex-shrink-0" />
+                  <div>
+                    <p className="text-xs font-semibold dark:text-white mb-0.5">
+                      Delivering to
+                    </p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      {form.delivery_address}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
               <div className="flex gap-3">
                 <Link to={`/orders/${order.order_number}`}
-                  className="flex-1 py-3 border-2 border-primary text-primary font-semibold
-                             rounded-xl hover:bg-primary/5 transition text-sm text-center">
+                  className="flex-1 py-3 border-2 border-primary text-primary
+                             font-semibold rounded-xl hover:bg-primary/5 transition
+                             text-sm text-center">
                   Track Order
                 </Link>
                 <Link to="/shop"
-                  className="flex-1 py-3 bg-primary text-white font-semibold rounded-xl
-                             hover:bg-blue-600 transition text-sm text-center">
+                  className="flex-1 py-3 bg-primary text-white font-semibold
+                             rounded-xl hover:bg-primary-dark transition text-sm
+                             text-center">
                   Continue Shopping
                 </Link>
               </div>
@@ -436,7 +473,7 @@ const CheckoutPage = () => {
           )}
         </div>
 
-        {/* Order summary sidebar */}
+        {/* Order summary */}
         <div className="lg:col-span-1">
           <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100
                           dark:border-gray-800 p-5 sticky top-24">
@@ -491,14 +528,6 @@ const CheckoutPage = () => {
                 </span>
               </div>
             </div>
-
-            {step === 1 && order && (
-              <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-800">
-                <p className="text-xs text-gray-500 dark:text-gray-400 text-center">
-                  Order will be confirmed after M-Pesa payment is received
-                </p>
-              </div>
-            )}
           </div>
         </div>
       </div>

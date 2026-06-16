@@ -4,6 +4,7 @@
   "private": true,
   "homepage": "https://waabiud.github.io/skymall-frontend",
   "dependencies": {
+    "@googlemaps/js-api-loader": "^2.1.1",
     "@react-oauth/google": "^0.13.5",
     "@tanstack/react-query": "^5.100.14",
     "@testing-library/dom": "^10.4.1",

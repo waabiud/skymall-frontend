@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import { FiArrowLeft, FiSave } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import { vendorAPI, productsAPI } from '../../api/endpoints';
-import CloudinaryUpload from '../../components/common/CloudinaryUpload';
+import { MultiImageUpload } from '../../components/common/CloudinaryUpload';
 import api from '../../api/axios';
 
 const VendorProductForm = () => {
@@ -12,12 +12,11 @@ const VendorProductForm = () => {
   const { slug }  = useParams();
   const isEditing = Boolean(slug);
 
-  const [categories, setCategories] = useState([]);
-  const [loading,    setLoading]    = useState(false);
-  const [saving,     setSaving]     = useState(false);
-  const [productSlug, setProductSlug] = useState(slug || null);
-  const [imageUrl,   setImageUrl]   = useState(null);
-  const [imageSaved, setImageSaved] = useState(false);
+  const [categories,   setCategories]   = useState([]);
+  const [loading,      setLoading]      = useState(false);
+  const [saving,       setSaving]       = useState(false);
+  const [productSlug,  setProductSlug]  = useState(slug || null);
+  const [images,       setImages]       = useState([]); // [{url, is_primary}]
 
   const [form, setForm] = useState({
     name:          '',
@@ -34,32 +33,47 @@ const VendorProductForm = () => {
   });
 
   useEffect(() => {
-    productsAPI.getCategories().then((res) => setCategories(res.data));
+    productsAPI.getCategories().then((res) =>
+      setCategories(Array.isArray(res.data) ? res.data : (res.data.results || []))
+    );
+
     if (isEditing) {
       setLoading(true);
-      vendorAPI.getProducts()
-        .then((res) => {
-          const products = res.data.results || res.data;
-          const product  = products.find((p) => p.slug === slug);
-          if (product) {
-            setForm({
-              name:          product.name          || '',
-              slug:          product.slug          || '',
-              description:   product.description   || '',
-              category:      product.category?.id  || '',
-              price:         product.price         || '',
-              discount:      product.discount      || '0',
-              stock:         product.stock         || '',
-              condition:     product.condition     || 'new',
-              is_active:     product.is_active     ?? true,
-              is_featured:   product.is_featured   || false,
-              is_flash_sale: product.is_flash_sale || false,
-            });
-            if (product.primary_image) setImageUrl(product.primary_image);
+      vendorAPI.getProducts().then((res) => {
+        const products = res.data.results || res.data;
+        const product  = Array.isArray(products)
+          ? products.find((p) => p.slug === slug)
+          : null;
+
+        if (product) {
+          setForm({
+            name:          product.name          || '',
+            slug:          product.slug          || '',
+            description:   product.description   || '',
+            category:      product.category?.id  || '',
+            price:         product.price         || '',
+            discount:      product.discount      || '0',
+            stock:         product.stock         || '',
+            condition:     product.condition     || 'new',
+            is_active:     product.is_active     ?? true,
+            is_featured:   product.is_featured   || false,
+            is_flash_sale: product.is_flash_sale || false,
+          });
+
+          // load existing images
+          if (product.images) {
+            setImages(product.images.map((img) => ({
+              url:        img.image,
+              is_primary: img.is_primary,
+              id:         img.id,
+            })));
+          } else if (product.primary_image) {
+            setImages([{ url: product.primary_image, is_primary: true }]);
           }
-        })
-        .finally(() => setLoading(false));
+        }
+      }).finally(() => setLoading(false));
     }
+  // eslint-disable-next-line
   }, [slug, isEditing]);
 
   const handleNameChange = (e) => {
@@ -78,19 +92,16 @@ const VendorProductForm = () => {
     setForm({ ...form, [name]: type === 'checkbox' ? checked : value });
   };
 
-  const handleImageUpload = async (url) => {
-    setImageUrl(url);
-    // if product already exists, save image immediately
-    if (productSlug && url) {
+  const saveImages = async (savedSlug) => {
+    for (const img of images) {
+      if (img.id) continue; // already saved
       try {
-        await api.post(`/products/manage/${productSlug}/images/`, {
-          image_url:  url,
-          is_primary: true,
+        await api.post(`/products/manage/${savedSlug}/images/`, {
+          image_url:  img.url,
+          is_primary: img.is_primary,
         });
-        setImageSaved(true);
-        toast.success('Image saved');
-      } catch {
-        // image will be saved after product creation
+      } catch (err) {
+        console.error('Image save error:', err);
       }
     }
   };
@@ -123,17 +134,8 @@ const VendorProductForm = () => {
         toast.success('Product created');
       }
 
-      // save image if not already saved
-      if (imageUrl && !imageSaved && savedSlug) {
-        try {
-          await api.post(`/products/manage/${savedSlug}/images/`, {
-            image_url:  imageUrl,
-            is_primary: true,
-          });
-        } catch (err) {
-          console.error('Image save failed:', err);
-        }
-      }
+      // save images
+      if (savedSlug) await saveImages(savedSlug);
 
       navigate('/vendor/products');
     } catch (err) {
@@ -175,22 +177,20 @@ const VendorProductForm = () => {
         onSubmit={handleSubmit}
         className="space-y-4">
 
-        {/* Product Image */}
+        {/* Product Images */}
         <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100
                         dark:border-gray-800 p-6">
-          <h2 className="font-heading font-semibold dark:text-white mb-4">
-            Product Image
+          <h2 className="font-heading font-semibold dark:text-white mb-1">
+            Product Images
           </h2>
-          <CloudinaryUpload
-            onUpload={handleImageUpload}
-            currentImage={imageUrl}
-            label="Main product image"
+          <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">
+            Upload up to 6 images. Click the star to set the main image.
+          </p>
+          <MultiImageUpload
+            images={images}
+            onImagesChange={setImages}
+            maxImages={6}
           />
-          {imageUrl && (
-            <p className="text-xs text-green-600 mt-2">
-              Image ready — will be saved with product
-            </p>
-          )}
         </div>
 
         {/* Basic info */}
@@ -217,10 +217,10 @@ const VendorProductForm = () => {
           <div>
             <label className="block text-sm font-medium text-gray-700
                               dark:text-gray-300 mb-1">
-              Slug (auto-generated)
+              Slug
             </label>
             <input type="text" name="slug" value={form.slug}
-              onChange={handleChange} placeholder="samsung-galaxy-a55"
+              onChange={handleChange} placeholder="auto-generated"
               className="w-full px-4 py-3 rounded-xl border border-gray-200
                          dark:border-gray-700 bg-gray-50 dark:bg-gray-800
                          dark:text-gray-400 text-sm focus:outline-none
@@ -252,7 +252,7 @@ const VendorProductForm = () => {
             </label>
             <textarea name="description" value={form.description}
               onChange={handleChange} required rows={5}
-              placeholder="Describe your product in detail..."
+              placeholder="Describe your product..."
               className="w-full px-4 py-3 rounded-xl border border-gray-200
                          dark:border-gray-700 bg-gray-50 dark:bg-gray-800
                          dark:text-white text-sm focus:outline-none
@@ -261,9 +261,7 @@ const VendorProductForm = () => {
 
           <div>
             <label className="block text-sm font-medium text-gray-700
-                              dark:text-gray-300 mb-1">
-              Condition
-            </label>
+                              dark:text-gray-300 mb-1">Condition</label>
             <div className="flex gap-2">
               {['new', 'used', 'refurbished'].map((c) => (
                 <button key={c} type="button"
@@ -304,11 +302,9 @@ const VendorProductForm = () => {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700
-                                dark:text-gray-300 mb-1">
-                Discount (%)
-              </label>
+                                dark:text-gray-300 mb-1">Discount (%)</label>
               <input type="number" name="discount" value={form.discount}
-                onChange={handleChange} min={0} max={100} step="0.01"
+                onChange={handleChange} min={0} max={100}
                 placeholder="0"
                 className="w-full px-4 py-3 rounded-xl border border-gray-200
                            dark:border-gray-700 bg-gray-50 dark:bg-gray-800
@@ -323,7 +319,8 @@ const VendorProductForm = () => {
               Stock Quantity <span className="text-danger">*</span>
             </label>
             <input type="number" name="stock" value={form.stock}
-              onChange={handleChange} required min={0} placeholder="0"
+              onChange={handleChange} required min={0}
+              placeholder="0"
               className="w-full px-4 py-3 rounded-xl border border-gray-200
                          dark:border-gray-700 bg-gray-50 dark:bg-gray-800
                          dark:text-white text-sm focus:outline-none
@@ -332,7 +329,9 @@ const VendorProductForm = () => {
 
           {form.price && (
             <div className="bg-primary/5 border border-primary/20 rounded-xl p-3">
-              <p className="text-xs text-gray-500 dark:text-gray-400">Price Preview</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                Price Preview
+              </p>
               <div className="flex items-center gap-3 mt-1">
                 <span className="font-bold text-primary text-lg">
                   KES {(form.price - (form.price * form.discount / 100)).toLocaleString()}
@@ -342,7 +341,8 @@ const VendorProductForm = () => {
                     <span className="text-sm text-gray-400 line-through">
                       KES {Number(form.price).toLocaleString()}
                     </span>
-                    <span className="text-xs bg-danger/10 text-danger px-2 py-0.5 rounded-lg">
+                    <span className="text-xs bg-danger/10 text-danger px-2 py-0.5
+                                     rounded-lg">
                       -{form.discount}% OFF
                     </span>
                   </>
@@ -355,7 +355,9 @@ const VendorProductForm = () => {
         {/* Visibility */}
         <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100
                         dark:border-gray-800 p-6">
-          <h2 className="font-heading font-semibold dark:text-white mb-4">Visibility</h2>
+          <h2 className="font-heading font-semibold dark:text-white mb-4">
+            Visibility
+          </h2>
           <div className="space-y-3">
             {[
               { name: 'is_active',     label: 'Active',
@@ -366,18 +368,26 @@ const VendorProductForm = () => {
                 desc: 'Show in flash sale section' },
             ].map((toggle) => (
               <label key={toggle.name}
-                className="flex items-center justify-between p-3 rounded-xl border
-                           border-gray-200 dark:border-gray-700 cursor-pointer
-                           hover:bg-gray-50 dark:hover:bg-gray-800 transition">
+                className="flex items-center justify-between p-3 rounded-xl
+                           border border-gray-200 dark:border-gray-700
+                           cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800
+                           transition">
                 <div>
-                  <p className="text-sm font-medium dark:text-white">{toggle.label}</p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">{toggle.desc}</p>
+                  <p className="text-sm font-medium dark:text-white">
+                    {toggle.label}
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    {toggle.desc}
+                  </p>
                 </div>
-                <div onClick={() => setForm({ ...form, [toggle.name]: !form[toggle.name] })}
+                <div
+                  onClick={() => setForm({ ...form, [toggle.name]: !form[toggle.name] })}
                   className={`w-11 h-6 rounded-full transition cursor-pointer
-                    ${form[toggle.name] ? 'bg-primary' : 'bg-gray-300 dark:bg-gray-600'}`}>
-                  <div className={`w-5 h-5 bg-white rounded-full shadow transition-transform
-                                  mt-0.5 mx-0.5
+                    ${form[toggle.name]
+                      ? 'bg-primary'
+                      : 'bg-gray-300 dark:bg-gray-600'}`}>
+                  <div className={`w-5 h-5 bg-white rounded-full shadow
+                                   transition-transform mt-0.5 mx-0.5
                     ${form[toggle.name] ? 'translate-x-5' : 'translate-x-0'}`} />
                 </div>
               </label>
@@ -395,9 +405,9 @@ const VendorProductForm = () => {
             Cancel
           </Link>
           <button type="submit" disabled={saving}
-            className="flex-1 flex items-center justify-center gap-2 py-3 bg-primary
-                       text-white font-semibold rounded-xl hover:bg-blue-600 transition
-                       disabled:opacity-60 text-sm">
+            className="flex-1 flex items-center justify-center gap-2 py-3
+                       bg-primary text-white font-semibold rounded-xl
+                       hover:bg-primary-dark transition disabled:opacity-60 text-sm">
             <FiSave size={16} />
             {saving ? 'Saving...' : isEditing ? 'Update Product' : 'Create Product'}
           </button>

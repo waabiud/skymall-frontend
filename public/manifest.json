@@ -1,7 +1,7 @@
 {
   "short_name": "SkyMall",
   "name": "SkyMall - Smart Shopping Starts Here",
-  "description": "Kenya's premier online marketplace. Shop from thousands of verified vendors.",
+  "description": "Kenya's smartest online marketplace",
   "icons": [
     {
       "src": "favicon.ico",
@@ -11,21 +11,18 @@
     {
       "src": "logo192.png",
       "type": "image/png",
-      "sizes": "192x192",
-      "purpose": "any maskable"
+      "sizes": "192x192"
     },
     {
       "src": "logo512.png",
       "type": "image/png",
-      "sizes": "512x512",
-      "purpose": "any maskable"
+      "sizes": "512x512"
     }
   ],
   "start_url": ".",
   "display": "standalone",
-  "theme_color": "#0070F3",
+  "theme_color": "#E91E8C",
   "background_color": "#ffffff",
-  "orientation": "portrait",
-  "categories": ["shopping", "lifestyle"],
-  "screenshots": []
+  "categories": ["shopping", "business"],
+  "lang": "en-KE"
 }

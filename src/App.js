@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { HashRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import useThemeStore from './store/themeStore';
@@ -21,6 +21,8 @@ import RegisterPage        from './pages/auth/RegisterPage';
 import VerifyOTPPage       from './pages/auth/VerifyOTPPage';
 import VendorDashboardPage from './pages/vendor/VendorDashboardPage';
 import VendorProductForm   from './pages/vendor/VendorProductForm';
+import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
+import TermsPage        from './pages/TermsPage';
 import NotFoundPage        from './pages/NotFoundPage';
 
 import PrivateRoute from './components/common/PrivateRoute';
@@ -72,6 +74,8 @@ function App() {
               <Route path="/vendor/products/:slug/edit"
                 element={<VendorRoute><VendorProductForm /></VendorRoute>} />
 
+              <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
+              <Route path="/terms" element={<TermsPage />} />
               <Route path="*" element={<NotFoundPage />} />
 
             </Routes>
